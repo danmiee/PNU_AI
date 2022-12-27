@@ -1,69 +1,47 @@
 import random
 import math
 
-# 나중에 사용하기 위한 전역변수 선언
 DELTA = 0.01   # Mutation step size
 NumEval = 0    # Total number of evaluations
 
 
 def main():
-    # Create an instance of numerical optimization problem
-    # 입력 txt 파일에서 수식과 변수의 범위를 읽어와 반환
     p = createProblem()   # 'p': (expr, domain)
-
-    # Call the search algorithm
-    # SteepestAscent 알고리즘을 실행하여 solution을 구하기
-    solution, minimum = steepestAscent(p)
-
-    # Show the problem and algorithm settings
-    describeProblem(p)
-    displaySetting()
-
-    # Report results
-    displayResult(solution, minimum)
+    print(p)
+    # solution, minimum = steepestAscent(p)
+    # describeProblem(p)
+    # displaySetting()
+    # displayResult(solution, minimum)
 
 
 def createProblem():
-    # Read in an expression and its domain from a file.
 
-    # input function을 이용해 읽어올 txt 파일의 경로를 얻어옴
     fileName = input("파일명을 입력하세요.")
     infile = open(
         'AIP_09_SearchAlgorithms/Search_Tool_Sample_Problems/'+fileName, 'r')
 
-    # 'expression' is a string.
-    # 'expression'은 txt 파일의 첫 줄에 있는 수식 string
-    # readline()을 이용해 각 줄의 정보를 읽어옴
-    expression = infile.readline().rstrip()
-
-    # 'varNames' is a list of variable names.
-    varNames = []
-    # 'low' is a list of lower bounds of the varaibles.
-    low = []
-    # 'up' is a list of upper bounds of the varaibles.
-    up = []
-
-    # line  = infile.readline().rstrip()
-    # while line != '':
-    for line in infile:
-        # txt 파일의 두 번째 줄 부터는 변수명,최소값,최대값
-        d = line.split(",")
-        # 'varNames'는 각 변수의 이름이 저장 됨
-        varNames.append(d[0])
-        # 'low'에는 각 변수의 최소값이 저장됨
-        low.append(eval(d[1]))
-        # 'up'에는 각 변수의 최대값이 저장됨
-        up.append(eval(d[2]))
-        # while문 사용 시 다음 값 판단 위해 line 확인
-        # line = f.readline().rstrip()
-
-    # 'domain' is a list of 'varNames', 'low', and 'up'.
-    domain = [varNames, low, up]
+    numCities = int(infile.readline())
+    locations = []
+    line = infile.readline()
+    while line != '':
+        locations.append(eval(line))
+        line = infile.readline()
     infile.close()
+    table = calcDistanceTable(numCities, locations)
+    return numCities, locations, table
 
-    # Then, return a problem 'p'.
-    # 'p' is a tuple of 'expression' and 'domain'.
-    return expression, domain
+
+def calcDistanceTable(numCities, locations):
+    table = []
+    for i in range(numCities):
+        row = []
+        for j in range(numCities):
+            dx = locations[i][0] - locations[j][0]
+            dy = locations[i][1] - locations[j][1]
+            d = round(math.sqrt(dx**2 + dy**2), 1)
+            row.append(d)
+        table.append(row)
+    return table
 
 
 def steepestAscent(p):
@@ -84,7 +62,7 @@ def steepestAscent(p):
         else:
             current = successor
             valueC = valueS
-    
+
     # Best solution과 그때의 Cost를 반환
 
     return current, valueC
@@ -122,19 +100,19 @@ def evaluate(current, p):
 
     for i in range(len(varNames)):
         # 이를 이용해 x=value 형태의 string을 만든 뒤,
-        ## x1, x2, x3, x4, x5에 현재 값을 저장한 후
-        ## 'x1=0.5'와 같은 형태로 string을 만들어 exec함수 이용
-        ## 왜냐하면 'x1', 'x2'와 같은 변수명을 이미 저장해두었기 때문
+        # x1, x2, x3, x4, x5에 현재 값을 저장한 후
+        # 'x1=0.5'와 같은 형태로 string을 만들어 exec함수 이용
+        # 왜냐하면 'x1', 'x2'와 같은 변수명을 이미 저장해두었기 때문
         cmd = varNames[i] + '=' + str(current[i])
         # exec 를 이용해 실제로 실행하여 값을 할당 후
         ## exec('x1' + '=' + str(CURRENT_VALUE))
-        ## eval : 값 반환 / exec : 값 할당, 반환x
-        ## 결과적으로 x1에 CURRENT_VALUE가 할당됨
+        # eval : 값 반환 / exec : 값 할당, 반환x
+        # 결과적으로 x1에 CURRENT_VALUE가 할당됨
         exec(cmd)
 
     # expression을 eval하여 현재 함수값 계산
     valueC = eval(expression)
-    
+
     # 함수를 current 값을 이용해서 계산한 값
     return valueC
 
