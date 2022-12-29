@@ -123,3 +123,87 @@ class Numeric(Problem):
     def coordinate(self):
         c = [round(value, 3) for value in self._solution]
         return tuple(c)  # Convert the list to a tuple
+
+class Tsp(Problem):
+    def __init__(self):
+        super().__init__()
+        self._numCities = 0
+        self._locations = []
+        self._distanceTable = []
+        
+    def setVariables(self):
+        fileName = input("파일명을 입력하세요.")
+        infile = open(
+            './Search_Tool_Sample_Problems/'+fileName, 'r')
+        self._numCities = int(infile.readline())
+        self._locations = []
+        line = infile.readline()
+        while line != '':
+            self._locations.append(eval(line))  # eval : string에서 tuple로 변환
+            line = infile.readline()
+        infile.close()
+        self.calcDistanceTable()
+
+    def calcDistanceTable(self):
+        for i in range(self._numCities):
+            row = []
+            for j in range(self._numCities):
+                dx = self._locations[i][0] - self._locations[j][0]
+                dy = self._locations[i][1] - self._locations[j][1]
+                d = round(math.sqrt(dx**2 + dy**2), 1)
+                row.append(d)
+            self._distanceTable.append(row)
+
+    def randomInit(self):
+        init = list(range(self._numCities))
+        random.shuffle(init)
+        return init
+    
+    def evaluate(self, current):
+        self._numEval += 1
+        cost = 0
+        for i in range(self._numCities-1):
+            cost += self._distanceTable[current[i]][current[i+1]]
+        return cost
+    
+    def mutants(self, current):
+        neighbors = []
+        triedPairs = []
+        while len(neighbors) < self._numCities:
+            i = random.randint(0, self._numCities-2)
+            j = random.randint(i+1, self._numCities-1)
+            if [i, j] in triedPairs:
+                continue
+            else:
+                triedPairs.append([i, j])
+            neighbors.append(self.inversion(current, i, j))
+        return neighbors
+
+    def inversion(self, current, i, j):
+        curCopy = current[:]
+        s = curCopy[i:j+1]
+        s.reverse()
+        curCopy[i:j+1] = s
+        return curCopy
+
+    def describe(self):
+        print()
+        print("Number of cities:", self._numCities)
+        print("City locations:")
+        for i in range(self._numCities):
+            print("{0:>12}".format(str(self._locations[i])), end='')
+            if i % 5 == 4:
+                print()
+
+    def report(self):
+        print()
+        print("Best order of visits:")
+        self.tenPerRow()       # Print 10 cities per row
+        print("Minimum tour cost: {0:,}".format(round(self._value)))
+        super().report()
+
+    def tenPerRow(self):
+        for i in range(len(self._solution)):
+            print("{0:>5}".format(self._solution[i]), end='')
+            if i % 10 == 9:
+                print()
