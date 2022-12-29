@@ -98,7 +98,13 @@ class Numeric(Problem):
             neighbor[i] += d
         return neighbor
 
-    # def randomMutant(self, current):
+    def randomMutant(self, current):
+        i = random.randint(0, len(current) - 1)
+        if random.uniform(0, 1) > 0.5:
+            d = self._delta
+        else:
+            d = -self._delta
+        return self.mutate(current, i, d)
 
     def describe(self):
         print()
@@ -186,6 +192,14 @@ class Tsp(Problem):
         curCopy[i:j+1] = s
         return curCopy
 
+    def randomMutant(self, current):
+        while True:
+            i, j = sorted([random.randrange(self._numCities) for _ in range(2)])
+            if i < j:
+                mutant = self.inversion(current, i, j)
+                break
+        return mutant
+    
     def describe(self):
         print()
         print("Number of cities:", self._numCities)
