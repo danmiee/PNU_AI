@@ -17,7 +17,7 @@ def main():
 def createProblem():
     fileName = input("파일명을 입력하세요.")
     infile = open(
-        'AIP_09_SearchAlgorithms/Search_Tool_Sample_Problems/'+fileName, 'r')
+        './Search_Tool_Sample_Problems/'+fileName, 'r')
     expression = infile.readline().rstrip()
 
     varNames = []
