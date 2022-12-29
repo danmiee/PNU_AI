@@ -34,11 +34,10 @@ def firstChoice(cls_tsp):
     cls_tsp.storeResult(current, valueC)
 
 
-def displaySetting(cls_tsp):
+def displaySetting():
     print()
-    print("Search algorithm: Steepest-Ascent Hill Climbing")
-    print()
-    print("Mutation step size:", cls_tsp.getDelta)
+    print("Search algorithm: First-Choice Hill Climbing")
+    print("Max evaluations with no improvement: {0:,} iterations".format(LIMIT_STUCK))
 
 
 main()
