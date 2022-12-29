@@ -187,6 +187,7 @@ def bestOf(neighbors, p):
         newValue = evaluate(neighbors[i], p)
         if newValue < bestValue:
             bestValue = newValue
+            best = neighbors[i]
 
     # 3. 비교가 끝나면 best 반환
     return best, bestValue
