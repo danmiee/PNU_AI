@@ -1,4 +1,3 @@
-import random
 from problem import Tsp
 
 # 나중에 사용하기 위한 전역변수 선언
