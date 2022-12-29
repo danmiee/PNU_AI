@@ -48,7 +48,7 @@ class Numeric(Problem):
         # 입력파일을 input으로 받아서 createProblrm과 동일한 동작
         # 이후 self._expression, self._domain 업데이트
         fileName = input("파일명을 입력하세요.")
-        infile = open('./Search_Tool_Sample_Problems/'+fileName, 'r')
+        infile = open('./Sample/'+fileName, 'r')
         self._expression = infile.readline().rstrip()
 
         varNames = []
@@ -139,8 +139,7 @@ class Tsp(Problem):
         
     def setVariables(self):
         fileName = input("파일명을 입력하세요.")
-        infile = open(
-            './Search_Tool_Sample_Problems/'+fileName, 'r')
+        infile = open('./Sample/'+fileName, 'r')
         self._numCities = int(infile.readline())
         self._locations = []
         line = infile.readline()
