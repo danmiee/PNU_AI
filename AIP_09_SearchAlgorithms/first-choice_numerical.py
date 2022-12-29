@@ -1,8 +1,7 @@
-import random
 from problem import Numeric
 
-# 나중에 사용하기 위한 전역변수 선언
-LIMIT_STUCK = 10000
+LIMIT_STUCK = 100
+
 
 def main():
     cls_num = Numeric()

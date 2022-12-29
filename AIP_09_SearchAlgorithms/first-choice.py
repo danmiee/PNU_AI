@@ -1,5 +1,4 @@
 import random
-import math
 
 # 나중에 사용하기 위한 전역변수 선언
 DELTA = 0.01   # Mutation step size
