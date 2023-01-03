@@ -1,19 +1,18 @@
 import random
 import math
+
 from setup import Setup
 
+
 class Problem(Setup):
-    # 모든 클래스 메소드에 self가 붙는 이유
-    # 내 자신에 대한 참조 - 예외 : static 메소드
-    
     def __init__(self):
-        super().__init__()
-        self._solution = None
-        self._value = 0         # Minimum
+        Setup.__init__(self)
+        self._solution = []
+        self._value = 0
         self._numEval = 0
 
     def setVariables(self):
-        pass  # 기능이 있어야하는데 상속받는 클래스에서 구현할 것임을 표현
+        pass
     
     def randomInit(self):
         pass
@@ -41,81 +40,113 @@ class Problem(Setup):
 
 class Numeric(Problem):
     def __init__(self):
-        super().__init__()
+        Problem.__init__(self)
         self._expression = ''
-        self._domain = []
-        self._delta = 0.01
+        self._domain = []     # domain as a list
     
     def setVariables(self):
-        # 입력파일을 input으로 받아서 createProblrm과 동일한 동작
-        # 이후 self._expression, self._domain 업데이트
-        fileName = input("파일명을 입력하세요.")
-        infile = open('./Sample/'+fileName, 'r')
-        self._expression = infile.readline().rstrip()
-
-        varNames = []
-        low = []
-        up = []
-
-        for line in infile:
-            d = line.split(",")
-            varNames.append(d[0])
-            low.append(eval(d[1]))
-            up.append(eval(d[2]))
-        self._domain = [varNames, low, up]
+        ## Read in a function and its domain from a file
+        ## Then, set the relevant class variables
+        fileName = input("Enter the file name of a function: ")
+        infile = open('./problem/' + fileName, 'r')
+        self._expression = infile.readline() # as a string
+        varNames = []  # Variable names
+        low = []       # Lower bounds
+        up = []        # Upper bounds
+        line = infile.readline()
+        while line != '':
+            data = line.split(',')  # read from CSV
+            varNames.append(data[0])
+            low.append(float(data[1]))
+            up.append(float(data[2]))
+            line = infile.readline()
         infile.close()
+        self._domain = [varNames, low, up]
 
-    def getDelta(self):
-        return self._delta
-    
     def randomInit(self): # Return a random initial point as a list
-        low, up = self._domain[1], self._domain[2]
+        domain = self._domain
+        low, up = domain[1], domain[2]
         init = []
-        for i in range(len(low)):
-            init.append(random.uniform(low[i], up[i]))
-        return init
+        for i in range(len(low)):              # For each variable
+            r = random.uniform(low[i], up[i])  # take a random value
+            init.append(r)
+        return init  # list of values
 
     def evaluate(self, current):
+        ## Evaluate the expression of 'p' after assigning
+        ## the values of 'current' to the variables
         self._numEval += 1
+        expr = self._expression
         varNames = self._domain[0]
         for i in range(len(varNames)):
-            cmd = varNames[i] + '=' + str(current[i])
-            exec(cmd)
-        valueC = eval(self._expression)
-        return valueC
-    
+            assignment = varNames[i] + '=' + str(current[i])
+            exec(assignment)
+        return eval(expr)
+
     def mutants(self, current):
         neighbors = []
-        for i in range(len(current)):
-            m = self.mutate(current, i, self._delta)
-            neighbors.append(m)
-            m = self.mutate(current, i, -self._delta)
-            neighbors.append(m)
+        for i in range(len(current)):  # For each variable
+            mutant = self.mutate(current, i, self._delta)
+            neighbors.append(mutant)
+            mutant = self.mutate(current, i, -self._delta)
+            neighbors.append(mutant)
         return neighbors
 
     def mutate(self, current, i, d): ## Mutate i-th of 'current' if legal
-        neighbor = current[:]
-        low, up = self._domain[1], self._domain[2]
-        if low[i] <= neighbor[i] + d <= up[i]:
-            neighbor[i] += d
-        return neighbor
+        mutant = current[:]   # Make a copy of 'current'
+        domain = self._domain # [VarNames, low, up]
+        l = domain[1][i]      # Lower bound of i-th
+        u = domain[2][i]      # Upper bound of i-th
+        if l <= (mutant[i] + d) <= u:
+            mutant[i] += d
+        return mutant
 
     def randomMutant(self, current):
+        # Pick a random locus
         i = random.randint(0, len(current) - 1)
+        # Mutate the chosen locus
         if random.uniform(0, 1) > 0.5:
             d = self._delta
         else:
             d = -self._delta
         return self.mutate(current, i, d)
 
+    def takeStep(self, x, v): # Take gradient and make update if legal
+        grad = self.gradient(x, v)  # Gradient at point 'x'
+        xCopy = x[:]
+        for i in range(len(xCopy)):
+            xCopy[i] = xCopy[i] - self._alpha * grad[i]
+        if self.isLegal(xCopy):  # Check if 'xCopy' is within the domain
+            return xCopy
+        else:
+            return x
+
+    def gradient(self, x, v): # 'x' is a vector (list of valules)
+        grad = []   # Calculate partial derivatives and combine them
+        for i in range(len(x)):
+            xCopyH = x[:]
+            xCopyH[i] += self._dx
+            g = (self.evaluate(xCopyH) - v) / self._dx
+            grad.append(g)
+        return grad
+
+    def isLegal(self, x):   # Check if 'x' is within the domain
+        domain = self._domain      # [VarNames, low, up]
+        low = domain[1]   # Lower bounds
+        up = domain[2]    # Upper bounds
+        flag = True
+        for i in range(len(low)):
+            if x[i] < low[i] or up[i] < x[i]:
+                flag = False
+                break
+        return flag
+
     def describe(self):
         print()
         print("Objective function:")
-        # expression 출력
-        print(self._expression)   # Expression
+        print(self._expression)
         print("Search space:")
-        # Domain 정보 출력
-        varNames = self._domain[0]  # self._domain is domain: [VarNames, low, up]
+        varNames = self._domain[0] # domain: [VarNames, low, up]
         low = self._domain[1]
         up = self._domain[2]
         for i in range(len(low)):
@@ -126,99 +157,121 @@ class Numeric(Problem):
         print("Solution found:")
         print(self.coordinate())  # Convert list to tuple
         print("Minimum value: {0:,.3f}".format(self._value))
-        super().report() 
+        Problem.report(self)
 
     def coordinate(self):
         c = [round(value, 3) for value in self._solution]
         return tuple(c)  # Convert the list to a tuple
 
+
 class Tsp(Problem):
     def __init__(self):
-        super().__init__()
+        Problem.__init__(self)
         self._numCities = 0
-        self._locations = []
+        self._locations = []       # A list of tuples
         self._distanceTable = []
-        
+
     def setVariables(self):
-        fileName = input("파일명을 입력하세요.")
-        infile = open('./Sample/'+fileName, 'r')
+        ## Read in a TSP (# of cities, locatioins) from a file
+        ## Then, set the relevant class variables
+        fileName = input("Enter the file name of a TSP: ")
+        infile = open('./problem/' + fileName, 'r')
+        # First line is number of cities
         self._numCities = int(infile.readline())
-        self._locations = []
-        line = infile.readline()
+        cityLocs = []
+        line = infile.readline()  # The rest of the lines are locations
         while line != '':
-            self._locations.append(eval(line))  # eval : string에서 tuple로 변환
+            cityLocs.append(eval(line)) # Make a tuple and append
             line = infile.readline()
         infile.close()
-        self.calcDistanceTable()
-
+        self._locations = cityLocs
+        self._distanceTable = self.calcDistanceTable()
+        
     def calcDistanceTable(self):
+        locations = self._locations
+        table = []
         for i in range(self._numCities):
             row = []
             for j in range(self._numCities):
-                dx = self._locations[i][0] - self._locations[j][0]
-                dy = self._locations[i][1] - self._locations[j][1]
+                dx = locations[i][0] - locations[j][0]
+                dy = locations[i][1] - locations[j][1]
                 d = round(math.sqrt(dx**2 + dy**2), 1)
                 row.append(d)
-            self._distanceTable.append(row)
+            table.append(row)
+        return table # A symmetric matrix of pairwise distances
 
-    def randomInit(self):
-        init = list(range(self._numCities))
+    def randomInit(self):   # Return a random initial tour
+        n = self._numCities
+        init = list(range(n))
         random.shuffle(init)
         return init
-    
+
     def evaluate(self, current):
+        ## Calculate the tour cost of 'current'
+        ## 'current' is a list of city ids
         self._numEval += 1
+        n = self._numCities
+        table = self._distanceTable
         cost = 0
-        for i in range(self._numCities-1):
-            cost += self._distanceTable[current[i]][current[i+1]]
+        for i in range(n - 1):
+            locFrom = current[i]
+            locTo = current[i+1]
+            cost += table[locFrom][locTo]
         return cost
-    
-    def mutants(self, current):
+
+    def mutants(self, current): # Inversion only
+        n = self._numCities
         neighbors = []
+        count = 0
         triedPairs = []
-        while len(neighbors) < self._numCities:
-            i = random.randint(0, self._numCities-2)
-            j = random.randint(i+1, self._numCities-1)
-            if [i, j] in triedPairs:
-                continue
-            else:
+        while count <= n:  # Pick two random loci for inversion
+            i, j = sorted([random.randrange(n) for _ in range(2)])
+            if i < j and [i, j] not in triedPairs:
                 triedPairs.append([i, j])
-            neighbors.append(self.inversion(current, i, j))
+                mutant = self.inversion(current, i, j)
+                count += 1
+                neighbors.append(mutant)
         return neighbors
 
-    def inversion(self, current, i, j):
-        curCopy = current[:]
-        s = curCopy[i:j+1]
-        s.reverse()
-        curCopy[i:j+1] = s
-        return curCopy
+    def inversion(self, current, i, j):  ## Perform inversion
+        mutant = current[:]  # Make a copy of 'current'
+        while i < j:
+            mutant[i], mutant[j] = mutant[j], mutant[i]
+            i += 1
+            j -= 1
+        return mutant
 
-    def randomMutant(self, current):
+    def randomMutant(self, current): # Inversion only
         while True:
-            i, j = sorted([random.randrange(self._numCities) for _ in range(2)])
+            i, j = sorted([random.randrange(self._numCities)
+                           for _ in range(2)])
             if i < j:
                 mutant = self.inversion(current, i, j)
                 break
         return mutant
-    
+
     def describe(self):
         print()
-        print("Number of cities:", self._numCities)
+        n = self._numCities
+        print("Number of cities:", n)
         print("City locations:")
-        for i in range(self._numCities):
-            print("{0:>12}".format(str(self._locations[i])), end='')
+        locations = self._locations
+        for i in range(n):
+            print("{0:>12}".format(str(locations[i])), end = '')
             if i % 5 == 4:
                 print()
 
     def report(self):
         print()
         print("Best order of visits:")
-        self.tenPerRow()       # Print 10 cities per row
+        self.tenPerRow()  # Print 10 cities per row
         print("Minimum tour cost: {0:,}".format(round(self._value)))
-        super().report()
+        Problem.report(self)
 
     def tenPerRow(self):
-        for i in range(len(self._solution)):
-            print("{0:>5}".format(self._solution[i]), end='')
+        solution = self._solution
+        for i in range(len(solution)):
+            print("{0:>5}".format(solution[i]), end='')
             if i % 10 == 9:
                 print()
+
